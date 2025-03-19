@@ -10,18 +10,21 @@ pipeline {
             steps {
                 script {
                     echo 'incrementing app version...'
-                    //sh 'VERSION_FULL=$(npm version minor --no-git-tag-version)'
-                    //sh 'VERSION=$(echo "${VERSION_FULL}" | sed "s/^v//")'
-                    //def version = sh(script: "echo '${VERSION_FULL}' | sed 's/^v//'", returnStdout: true).trim()
                     def version = sh(script: "npm version minor --no-git-tag-version", returnStdout: true).substring(1).trim()
-
-                    //sh 'mvn build-helper:parse-version versions:set \
-                    //    -DnewVersion=\\\${parsedVersion.majorVersion}.\\\${parsedVersion.minorVersion}.\\\${parsedVersion.nextIncrementalVersion} \
-                    //    versions:commit'
-                    //def matcher = readFile('pom.xml') =~ '<version>(.+)</version>'
-                    //def version = matcher[0][1]
                     env.IMAGE_NAME = "${version}-${BUILD_NUMBER}"
                     echo "${IMAGE_NAME}"
+
+                    //proposed solution
+                    //sh "npm version minor —no-git-tag-version"
+                    //def packageJson = readJSON file: 'package.json'
+                    //def version = packageJson.version
+                    //env.IMAGE_NAME = "$version-$BUILD_NUMBER"
+
+                    // another proposed solution
+                    //alternative solution without Pipeline Utility Steps plugin: 
+                    //def version = sh (returnStdout: true, script: "grep 'version' package.json | cut -d '\"' -f4 | tr '\\n' '\\0'")
+                    //env.IMAGE_NAME = "$version-$BUILD_NUMBER"
+   
                 }
             }
         }
@@ -46,7 +49,7 @@ pipeline {
                     echo "building the docker image..."
                     withCredentials([usernamePassword(credentialsId: 'docker-hub', passwordVariable: 'PASS', usernameVariable: 'USER')]){
                     sh "docker image build -t ncortim/app:${IMAGE_NAME} ."
-                    sh "echo \${PASS} | docker login -u \${USER} --password-stdin"
+                    sh 'echo ${PASS} | docker login -u ${USER} --password-stdin'
                     sh "docker push ncortim/app:${IMAGE_NAME}"
                     }
                 }
