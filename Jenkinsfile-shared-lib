@@ -1,0 +1,57 @@
+#!/user/bin/env groovy
+@Library('jenkins-shared-library-exercise')
+def gv
+
+pipeline {
+    agent any
+        tools {
+            nodejs 'my-nodejs'
+        }
+    stages {
+        stage('increment version') {
+            steps {
+                script {
+                    echo 'incrementing app version...'
+                    def version = sh(script: "npm version minor --no-git-tag-version", returnStdout: true).substring(1).trim()
+                    env.IMAGE_NAME = "${version}-${BUILD_NUMBER}"
+                    echo "${IMAGE_NAME}"
+                }
+            }
+        }
+        stage('build app') {
+            steps {
+                script {
+                    build()
+                }
+            }
+        }
+        stage('test') {
+            steps {
+                script {
+                    test()
+                }
+            }
+        }
+        stage('build image') {
+            steps {
+                script {
+                    buildImage()
+                }
+            }
+        }
+        //stage('deploy') {
+        //    steps {
+        //        script {
+        //            echo 'deploying docker image...'
+        //        }
+        //    }
+        //}
+        stage('commit version update'){
+            steps {
+                script {
+                    versionBump()
+                }
+            }
+        }
+    }
+}
